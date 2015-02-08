@@ -2,6 +2,8 @@
 
 #import csv, json, requests, time
 import json
+import numpy
+
 from datetime import datetime
 
 import xmltodict
@@ -24,6 +26,18 @@ league_key = '331.l.1098504' # current Kimball leauge
 leagues_uri = 'http://fantasysports.yahooapis.com/fantasy/v2/leagues;league_keys=' + league_key
 
 nfl_games = 'http://fantasysports.yahooapis.com/fantasy/v2/game/nfl'
+
+numpy.set_printoptions(precision=4)
+
+def median(lst):
+    lst = sorted(lst)
+    import math
+    if len(lst) < 1:
+            return None
+    if len(lst) %2 == 1:
+            return lst[((len(lst)+1)/2)-1]
+    if len(lst) %2 == 0:
+            return float(sum(lst[(len(lst)/2)-1:(len(lst)/2)+1]))/2.0
 
 
 def get_league_info(league_key):
@@ -80,7 +94,9 @@ def get_league_info(league_key):
 
 def get_players(league_key, position = None):
     uri = 'http://fantasysports.yahooapis.com/fantasy/v2/league/' + league_key + '/players;sort=PTS;sort_type=season;count=100'
-    uri = 'http://fantasysports.yahooapis.com/fantasy/v2/league/' + league_key + '/players;sort=PTS;sort_type=season;count=25'
+    uri = 'http://fantasysports.yahooapis.com/fantasy/v2/league/' + league_key + '/players;sort=PTS;sort_type=season;count=5'
+    # ;start=26 would get the next set
+    # so we need to loop through 4 times to get the top 100 of anything
 
     if position:
         uri += ';position=' + position
@@ -114,9 +130,15 @@ def get_players(league_key, position = None):
                     #print 'Looking up week ' + str(i) + ' score for ' + player['player_key'] + ' ' + player['name']['full']
                     scores.append(get_player_stats(league_key, player['player_key'], i))
                 
+                scores_list = [float(item) for item in scores]
+                a = numpy.array(scores_list)
+
                 pdict['scores'] = scores
-                pdict['total'] = sum(float(item) for item in scores)
-                pdict['average'] = sum(float(item) for item in scores) / float(len(scores))
+                pdict['calculated_season_total'] = sum(float(item) for item in scores)
+                #pdict['averageold'] = sum(float(item) for item in scores) / len(scores)
+                pdict['average'] = numpy.around(numpy.mean(a), decimals=4)
+                pdict['median'] = numpy.median(a)
+                pdict['std_deviation'] = numpy.std(a)
 
                 rtn.append(pdict)
             x += 1
