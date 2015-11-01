@@ -37,12 +37,14 @@ def write_csv_file(filename, year, list_of_players):
         writer = csv.writer(f, quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator = '\n')
         
         writer.writerow(['YEAR', 'FILENAME', 'PLAYER_KEY', 'PLAYER_NAME', 'SEASON_TOTAL', 'CALCULATED_SEASON_TOTAL', 'MEAN', 'MEDIAN', 'STD_DEVIATION', 'CV',
+            #'PERFORMANCE_SCORE',
             'WK1', 'WK2', 'WK3', 'WK4', 'WK5', 'WK6', 'WK7', 'WK8', 'WK9', 'WK10', 'WK11', 'WK12', 'WK13', 'WK14', 'WK15', 'WK16'])
         # writer.writerows([year, filename, item['player_key'], item['player_name'], item['season_total'],
         #     item['calculated_season_total'], item['average'], item['median'], item['std_deviation'], ','.join(item['scores'])] for item in list_of_players)
         for item in list_of_players:
             writer.writerow([year, filename, item['player_key'], item['player_name'], item['season_total'],
                 item['calculated_season_total'], item['mean'], item['median'], item['std_deviation'], item['coefficient_of_variation'],
+                #item['performance_score'],
                 item['scores'][0],
                 item['scores'][1],
                 item['scores'][2],
@@ -121,7 +123,7 @@ def get_players(league_key, position = None):
     # so we need to loop through 4 times to get the top 100 of anything
 
     startPos = ['0', '25', '50', '75']
-    #startPos = ['0']
+    #startPos = ['75']
 
     if position:
         uri += ';position=' + position
@@ -137,9 +139,12 @@ def get_players(league_key, position = None):
         if r.status_code == 200:
             
             result = xmltodict.parse(r.text)
-            # print r.text
+            print r.text
 
-            players = result['fantasy_content']['league']['players']['player']
+            players = []
+            if result['fantasy_content']['league']['players']:
+                players = result['fantasy_content']['league']['players']['player']
+            
             if not isinstance(players, list): players = [players]
 
             end_week =  int(result['fantasy_content']['league']['end_week'])
@@ -177,7 +182,8 @@ def get_players(league_key, position = None):
                     pdict['mean'] = numpy.around(numpy.mean(a), decimals=4)
                     pdict['median'] = numpy.median(a)
                     pdict['std_deviation'] = numpy.std(a)
-                    pdict['coefficient_of_variation'] = pdict['std_deviation'] / pdict['mean'] # sd / mean
+                    pdict['coefficient_of_variation'] = pdict['std_deviation'] / pdict['mean'] # sd / mean # lower is better, less risk/volatility
+                    #pdict['performance_score'] = pdict['coefficient_of_variation'] * pdict['mean']
 
                     rtn.append(pdict)
                 x += 1        
@@ -252,7 +258,8 @@ def get_player_stats(league_key, player_key, week):
 For a given year (league ID), go through each position and assemble top players' weekly average scores
 
 '''
-positions = ['QB', 'RB', 'WR', 'TE']
+# positions = ['QB', 'RB', 'WR', 'TE']
+positions = ['K', 'DEF']
 
 for position in positions:
     players = get_players(SEED_LEAGUE_KEY, position)
