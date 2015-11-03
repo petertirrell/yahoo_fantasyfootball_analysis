@@ -4,13 +4,16 @@
 import csv, json, numpy, xmltodict, time
 
 from datetime import datetime
+from operator import itemgetter
 
 from yahooapi import YahooAPI
 
 keyfile = 'secrets.txt'
 tokenfile = 'tokenfile.txt'
 
-SEED_LEAGUE_KEY = '331.l.1098504' # current Kimball leauge, build list of leagues based on this
+SEED_LEAGUE_KEY = '331.l.1098504' # current Kimball leauge, build list of leagues based on this # 2014
+SEED_LEAGUE_KEY = '348.l.1044567' # 2015
+
 OUTPUT_CSV_PATH = 'C:\\Users\\Peter\\Dropbox\\ff\\data\\'
 #OUTPUT_CSV_PATH = 'data/'
 
@@ -21,9 +24,6 @@ users_uri = 'http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/gam
 
 teams_uri = 'http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/teams'
 
-league_key = '331.l.1098504' # current Kimball league
-leagues_uri = 'http://fantasysports.yahooapis.com/fantasy/v2/leagues;league_keys=' + league_key
-
 nfl_games = 'http://fantasysports.yahooapis.com/fantasy/v2/game/nfl'
 
 numpy.set_printoptions(precision=4)
@@ -31,89 +31,63 @@ numpy.set_printoptions(precision=4)
 
 def write_csv_file(filename, year, list_of_players):
     print str(datetime.now()) + ' Writing file {0}'.format(OUTPUT_CSV_PATH + filename + '.csv')
-    print list_of_players
-    with open(OUTPUT_CSV_PATH + filename + '.csv', 'w+') as f:
-        #writer = csv.writer(f, quoting=csv.QUOTE_ALL, lineterminator = '\n')
+    #print list_of_players
+    with open(OUTPUT_CSV_PATH + year + '-' + filename + '.csv', 'w+') as f:
         writer = csv.writer(f, quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator = '\n')
         
-        writer.writerow(['YEAR', 'FILENAME', 'PLAYER_KEY', 'PLAYER_NAME', 'SEASON_TOTAL', 'CALCULATED_SEASON_TOTAL', 'MEAN', 'MEDIAN', 'STD_DEVIATION', 'CV',
-            #'PERFORMANCE_SCORE',
-            'WK1', 'WK2', 'WK3', 'WK4', 'WK5', 'WK6', 'WK7', 'WK8', 'WK9', 'WK10', 'WK11', 'WK12', 'WK13', 'WK14', 'WK15', 'WK16'])
+        writer.writerow([
+            'YEAR', 
+            'FILENAME', 
+            'PLAYER_KEY', 
+            'PLAYER_NAME', 
+            'SEASON_TOTAL', 
+            'CALCULATED_SEASON_TOTAL', 
+            'MEAN', 
+            'MEDIAN', 
+            'STD_DEVIATION', 
+            'CV',
+            'MEAN_RANK', 
+            'CV_RANK', 
+            'PERFORMANCE_SCORE',
+            'PERFORMANCE_RANK'
+        ] + ['WK{0}'.format(i) for i in range(1, len(list_of_players[0]['scores'])+1)])
+            #'WK1', 'WK2', 'WK3', 'WK4', 'WK5', 'WK6', 'WK7', 'WK8', 'WK9', 'WK10', 'WK11', 'WK12', 'WK13', 'WK14', 'WK15', 'WK16'])
         # writer.writerows([year, filename, item['player_key'], item['player_name'], item['season_total'],
         #     item['calculated_season_total'], item['average'], item['median'], item['std_deviation'], ','.join(item['scores'])] for item in list_of_players)
-        for item in list_of_players:
-            writer.writerow([year, filename, item['player_key'], item['player_name'], item['season_total'],
-                item['calculated_season_total'], item['mean'], item['median'], item['std_deviation'], item['coefficient_of_variation'],
-                #item['performance_score'],
-                item['scores'][0],
-                item['scores'][1],
-                item['scores'][2],
-                item['scores'][3],
-                item['scores'][4],
-                item['scores'][5],
-                item['scores'][6],
-                item['scores'][7],
-                item['scores'][8],
-                item['scores'][9],
-                item['scores'][10],
-                item['scores'][11],
-                item['scores'][12],
-                item['scores'][13],
-                item['scores'][14],
-                item['scores'][15]
-                ])
-
-
-def get_league_info(league_key):
-    uri = 'http://fantasysports.yahooapis.com/fantasy/v2/leagues;league_keys=' + league_key
-
-    r = api.request(uri)
-
-    if r.status_code == 200:
-        result = xmltodict.parse(r.text)
-        # print r.text
-        leagues = result['fantasy_content']['leagues']['league']
-        if not isinstance(leagues, list): leagues = [leagues]
-
-        rtn = []
-        for league in leagues:
-            '''
-            Need league_key, renew (previous league ID), renewed (next league ID), start_date (use to get year of league)
-            '''
-            # print league['league_key']
-            # print league['renew']
-            # print league['renewed']
-            # print league['start_date']
-            
-            previous_league = None
-            
-            if league['renew']:
-                previous_league = league['renew'].split('_')[0] + '.l.' + league['renew'].split('_')[1]
-            
-            rtn.append({
-                'league_key' : league['league_key'],
-                'renew' : league['renew'],
-                'renewed' : league['renewed'],
-                'previous_league' : previous_league,
-                'start_date' : league['start_date'],
-                'year': datetime.strptime(league['start_date'], '%Y-%m-%d').year
-                })
-
-            # now backtrack for previous leagues
-            if league['renew']:
-                rtn += get_league_info(previous_league)
-
-        return rtn
-
-        # for league in result['fantasy_content']['leagues']['league']:
-        #     print league
-        #     '''
-        #     Need league_key, renew (previous league ID), renewed (next league ID), start_date (use to get year of league)
-        #     '''
-    else:
-        print 'Error: ' + str(r.status_code)
-        print r.text
-        return []
+        for player in list_of_players:
+            writer.writerow([
+                year, 
+                filename, 
+                player['player_key'], 
+                player['player_name'], 
+                player['season_total'],
+                player['calculated_season_total'], 
+                player['mean'], 
+                player['median'], 
+                player['std_deviation'], 
+                player['coefficient_of_variation'],
+                player['mean_rank'], 
+                player['cv_rank'], 
+                player['performance_score'],
+                player['performance_rank'],
+            ] + player['scores'])
+                # player['scores'][0] if len(player['scores'])>0 else '',
+                # player['scores'][1] if len(player['scores'])>1 else '',
+                # player['scores'][2] if len(player['scores'])>2 else '',
+                # player['scores'][3] if len(player['scores'])>3 else '',
+                # player['scores'][4] if len(player['scores'])>4 else '',
+                # player['scores'][5] if len(player['scores'])>5 else '',
+                # player['scores'][6] if len(player['scores'])>6 else '',
+                # player['scores'][7] if len(player['scores'])>7 else '',
+                # player['scores'][8] if len(player['scores'])>8 else '',
+                # player['scores'][9] if len(player['scores'])>9 else '',
+                # player['scores'][10] if len(player['scores'])>10 else '',
+                # player['scores'][11] if len(player['scores'])>11 else '',
+                # player['scores'][12] if len(player['scores'])>12 else '',
+                # player['scores'][13] if len(player['scores'])>13 else '',
+                # player['scores'][14] if len(player['scores'])>14 else '',
+                # player['scores'][15] if len(player['scores'])>15 else '',
+                # ])
 
 
 def get_players(league_key, position = None):
@@ -139,7 +113,7 @@ def get_players(league_key, position = None):
         if r.status_code == 200:
             
             result = xmltodict.parse(r.text)
-            print r.text
+            # print r.text
 
             players = []
             if result['fantasy_content']['league']['players']:
@@ -147,9 +121,9 @@ def get_players(league_key, position = None):
             
             if not isinstance(players, list): players = [players]
 
-            end_week =  int(result['fantasy_content']['league']['end_week'])
+            end_week =  int(result['fantasy_content']['league']['current_week'])
             
-            limit_debug = False
+            limit_debug = True
 
             x = 1
             for player in players:
@@ -248,28 +222,51 @@ def get_player_stats(league_key, player_key, week):
     return -99
 
 
-# assemble a list of leagues based on a seed league
-# all_leagues = get_league_info(SEED_LEAGUE_KEY) # at this point we have all our league IDs!
-
-# for item in all_leagues:
-#     print item
-
 '''
 For a given year (league ID), go through each position and assemble top players' weekly average scores
 
 '''
-# positions = ['QB', 'RB', 'WR', 'TE']
-positions = ['K', 'DEF']
+
+positions = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
+positions = ['WR']
 
 for position in positions:
     players = get_players(SEED_LEAGUE_KEY, position)
 
+    # sort list by mean, then add rank value (highest is better)
+    players = sorted(players, key=itemgetter('mean'), reverse=True)
+
+    i = 1
+    for player in players:
+        player['mean_rank'] = i
+        i += 1
+
+    # sort list by cv, then add rank value (lowest value is better)
+    players = sorted(players, key=itemgetter('coefficient_of_variation'))
+
+    i = 1
+    for player in players:
+        player['cv_rank'] = i if player['coefficient_of_variation'] > 0 else 100
+        i +=1
+
+    # calculate average rank, place in performance value
+    for player in players:
+        player['performance_score'] = ((4 *player['mean_rank']) + player['cv_rank']) / 2
+
+    # sort by overall performance
+    players = sorted(players, key=itemgetter('performance_score'))
+
+    i = 1
+    for player in players:
+        player['performance_rank'] = i
+        i +=1
+    
     for player in players:
         print player
 
     # write csv
     # print '{1} Writing CSV file to {0}'.format(OUTPUT_CSV_NAME, str(datetime.now()))
-    write_csv_file(position, '2014', players)
+    write_csv_file(position, '2015', players)
 
 # aaron rodgers 331.p.7200
 #foo = get_player_overall_stats2('331.l.1098504', '331.p.7200')
