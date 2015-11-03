@@ -51,9 +51,7 @@ def write_csv_file(filename, year, list_of_players):
             'PERFORMANCE_SCORE',
             'PERFORMANCE_RANK'
         ] + ['WK{0}'.format(i) for i in range(1, len(list_of_players[0]['scores'])+1)])
-            #'WK1', 'WK2', 'WK3', 'WK4', 'WK5', 'WK6', 'WK7', 'WK8', 'WK9', 'WK10', 'WK11', 'WK12', 'WK13', 'WK14', 'WK15', 'WK16'])
-        # writer.writerows([year, filename, item['player_key'], item['player_name'], item['season_total'],
-        #     item['calculated_season_total'], item['average'], item['median'], item['std_deviation'], ','.join(item['scores'])] for item in list_of_players)
+        
         for player in list_of_players:
             writer.writerow([
                 year, 
@@ -71,25 +69,7 @@ def write_csv_file(filename, year, list_of_players):
                 player['performance_score'],
                 player['performance_rank'],
             ] + player['scores'])
-                # player['scores'][0] if len(player['scores'])>0 else '',
-                # player['scores'][1] if len(player['scores'])>1 else '',
-                # player['scores'][2] if len(player['scores'])>2 else '',
-                # player['scores'][3] if len(player['scores'])>3 else '',
-                # player['scores'][4] if len(player['scores'])>4 else '',
-                # player['scores'][5] if len(player['scores'])>5 else '',
-                # player['scores'][6] if len(player['scores'])>6 else '',
-                # player['scores'][7] if len(player['scores'])>7 else '',
-                # player['scores'][8] if len(player['scores'])>8 else '',
-                # player['scores'][9] if len(player['scores'])>9 else '',
-                # player['scores'][10] if len(player['scores'])>10 else '',
-                # player['scores'][11] if len(player['scores'])>11 else '',
-                # player['scores'][12] if len(player['scores'])>12 else '',
-                # player['scores'][13] if len(player['scores'])>13 else '',
-                # player['scores'][14] if len(player['scores'])>14 else '',
-                # player['scores'][15] if len(player['scores'])>15 else '',
-                # ])
-
-
+        
 def get_players(league_key, position = None):
     uri = 'http://fantasysports.yahooapis.com/fantasy/v2/league/' + league_key + '/players;sort=PTS;sort_type=season'
     # uri = 'http://fantasysports.yahooapis.com/fantasy/v2/league/' + league_key + '/players;sort=PTS;sort_type=season;count=5'
@@ -123,7 +103,7 @@ def get_players(league_key, position = None):
 
             end_week =  int(result['fantasy_content']['league']['current_week'])
             
-            limit_debug = True
+            limit_debug = False
 
             x = 1
             for player in players:
