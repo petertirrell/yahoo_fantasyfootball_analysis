@@ -29,10 +29,11 @@ nfl_games = 'http://fantasysports.yahooapis.com/fantasy/v2/game/nfl'
 numpy.set_printoptions(precision=4)
 
 
-def write_csv_file(filename, year, list_of_players):
-    print str(datetime.now()) + ' Writing file {0}'.format(OUTPUT_CSV_PATH + filename + '.csv')
-    #print list_of_players
-    with open(OUTPUT_CSV_PATH + year + '-' + filename + '.csv', 'w+') as f:
+def write_csv_file(filename, year, players):
+    filepath = OUTPUT_CSV_PATH + year + '-' + filename + '.csv'
+    print str(datetime.now()) + ' Writing file {0}'.format(filepath)
+    
+    with open(filepath, 'w+') as f:
         writer = csv.writer(f, quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator = '\n')
         
         writer.writerow([
@@ -50,9 +51,9 @@ def write_csv_file(filename, year, list_of_players):
             'CV_RANK', 
             'PERFORMANCE_SCORE',
             'PERFORMANCE_RANK'
-        ] + ['WK{0}'.format(i) for i in range(1, len(list_of_players[0]['scores'])+1)])
+        ] + ['WK{0}'.format(i) for i in range(1, len(players[0]['scores'])+1)])
         
-        for player in list_of_players:
+        for player in players:
             writer.writerow([
                 year, 
                 filename, 
@@ -102,6 +103,9 @@ def get_players(league_key, position = None):
             if not isinstance(players, list): players = [players]
 
             end_week =  int(result['fantasy_content']['league']['current_week'])
+            print end_week
+            if end_week < 16:
+                end_week = end_week - 1
             
             limit_debug = False
 
@@ -208,7 +212,7 @@ For a given year (league ID), go through each position and assemble top players'
 '''
 
 positions = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
-positions = ['WR']
+positions = ['QB', 'RB']
 
 for position in positions:
     players = get_players(SEED_LEAGUE_KEY, position)
